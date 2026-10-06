@@ -1,174 +1,256 @@
 # Sports Prediction App and Copy Trading App
 
-This guide covers two separate local apps for Polymarket International. The
-Sports Prediction App shows NBA and MLB forecasts and records purchases entered
-by the user. The Copy Trading App screens macro/geopolitical traders, allocates
-across qualifying accounts, and follows their positions in sandbox or real mode.
+This repository contains two separate local applications. The Sports Prediction
+App provides NBA, MLB, NHL and soccer forecasts and controlled limit-order
+execution on **Polymarket US**. The Copy Trading App screens macro/geopolitical
+traders and follows their positions on **Polymarket International** in sandbox or
+real mode. Each app has its own environment, account controls and stored data.
 
 ## Find the right app
 
-| App | Extracted project folder | Local address | Main workflow |
+| App | Project folder | Local address | Venue and workflow |
 | --- | --- | --- | --- |
-| [Sports Prediction App](#sports-prediction-app) | `sports_prediction_app` | http://127.0.0.1:8766 | View forecasts and prices; record purchases manually |
-| [Copy Trading App](#copy-trading-app) | `Copy Trading App` | http://127.0.0.1:8790 | Screen accounts, allocate capital and copy positions |
+| [Sports Prediction App](#sports-prediction-app) | `sports_prediction_app` | http://127.0.0.1:8766; execution at `/trading` | Polymarket US; four-sport forecasts, automatic collection, dry run and LIVE limit orders |
+| [Copy Trading App](#copy-trading-app) | `Copy Trading App` | http://127.0.0.1:8790 | Polymarket International; account screening, allocation and position copying |
 
-Use Windows and Python 3.14. Each app has its own environment, dependencies and
-historical-data preparation. Run the commands in each section from that app's
-extracted project folder. Keep the two folders alongside this README so its
-links to detailed setup instructions resolve. The different ports allow both
-apps to run at the same time.
+Use Windows and Python 3.14. Run each command from the app directory named in its
+section. Keep this README at the repository root beside `sports_prediction_app/`
+and `Copy Trading App/` so its documentation links resolve. The sports ZIP contains
+the `sports_prediction_app/` folder and its own project README; it does not contain
+the separate Copy Trading App. The different ports allow both apps to run at once.
 
 ## Sports Prediction App
 
-**Command directory: `sports_prediction_app`.**
+**Command directory: `sports_prediction_app`.** Updated October 6, 2026.
 
-Use the app to view upcoming NBA and MLB games, compare model win probabilities
-with Polymarket prices, and record the money you have spent on a game.
+The app combines NBA, MLB, NHL and soccer forecasts, automatic data collection,
+and a shared **Polymarket US** execution engine. The prediction dashboard is at
+http://127.0.0.1:8766; account and trading controls are at
+http://127.0.0.1:8766/trading.
 
-### Start the app
+Soccer coverage includes Premier League, La Liga, Bundesliga, Serie A, Ligue 1
+and UEFA Champions League, with separate away, home and regulation-draw
+probabilities. UEFA Nations League research is not an enabled live route.
+An official fixture still needs a verified matching US market before execution.
 
-On the existing prepared project, open PowerShell in the project directory and run:
+### Package layout and data
+
+The source ZIP retains the `sports_prediction_app/` layout, including
+`data collecting/`, `collected data/raw/`, `collected data/result/`,
+`final_models/`, `reports/`, `sports_app/` and `tests/`. It includes 682 historical
+collection/reconstruction scripts, the current live collectors, setup helpers,
+model code and tests. Placeholder READMEs retain the data directories.
+
+Acquired datasets, fitted model artifacts, virtual environments, API credentials,
+account preferences, purchases and execution ledgers are excluded. A fresh source
+checkout needs the retained historical/model assets or their reconstruction;
+creating empty storage does not prepare forecasts.
+
+Use the [data requirements](<sports_prediction_app/DATA_REQUIREMENTS.md>),
+[collection guide](<sports_prediction_app/data collecting/README.md>),
+[model recipes](<sports_prediction_app/final_models/README.md>) and
+[package layout](<sports_prediction_app/PACKAGE_LAYOUT.md>) for the corresponding paths.
+
+### Install and start
+
+On an already prepared installation, double-click **Open Sports App.cmd**, or run:
 
 ```powershell
-.\sports_app\launch.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\sports_app\launch.ps1
 ```
 
-Open http://127.0.0.1:8766. Keep the server running for automatic schedule,
-lineup and price updates. To stop it when running directly in a terminal,
-press Ctrl+C.
-
-For a new Python installation, use Python 3.14, matching the current runtime:
+For a new installation, use Windows and Python 3.14. From the extracted
+`sports_prediction_app` directory:
 
 ```powershell
 py -3.14 -m venv final_models\.venv
 & .\final_models\.venv\Scripts\python.exe -m pip install -r requirements.txt -r final_models\requirements.txt
-.\prepare_storage.ps1
+& .\final_models\.venv\Scripts\python.exe -m pip install -r sports_app\requirements-live.txt
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\prepare_storage.ps1
 ```
 
-Before requesting predictions, prepare the dated game, player and team histories
-and the model inputs described in [model preparation](<sports_prediction_app/final_models/README.md>). The app needs those
-local histories to calculate probabilities. Creating empty storage alone does
-not train the models. Data acquisition and date-query instructions are in
-[data collection](<sports_prediction_app/data collecting/README.md>).
+The storage helper creates the local directories and the `data` junction to
+`collected data`. It does not download history and refuses to replace an unrelated
+existing `data` path. Restore or prepare the dated feature tables and model assets
+listed in the data requirements before expecting forecasts.
 
-To create the NBA estimator configuration when initializing a new project:
+If the NBA estimator configuration has not been restored, create it with:
 
 ```powershell
-& .\final_models\.venv\Scripts\python.exe .\final_models\nba\create_template.py
+& .\final_models\.venv\Scripts\python.exe -B .\final_models\nba\create_template.py
 ```
 
-This creates an unfitted estimator configuration. Historical feature data is
-still needed for training. Then launch the app using the first command above.
-For a visible server terminal, use:
+This creates the unfitted recipe and refuses to overwrite an existing template.
+It does not supply training data. Then use the launcher above. To run the server
+in a visible terminal instead:
 
 ```powershell
-& .\final_models\.venv\Scripts\python.exe .\sports_app\server.py --port 8766
+& .\final_models\.venv\Scripts\python.exe -B .\sports_app\server.py --port 8766
 ```
 
-### Use the dashboard
+Keep the server running for collection and execution; closing the browser does
+not stop either. Before intentionally shutting down an enabled instance, use
+**STOP NEW TRADING** and wait for the cancellation/reconciliation result. Filled
+positions remain held. A foreground server can then be stopped with Ctrl+C.
 
-1. Choose NBA, MLB or all games. Use the search box for a team, the date window
-   for upcoming games, and the price filter to find games with market quotes.
-2. Check the teams, start time and hours remaining. Schedules and final results
-   come from official league sources. The app displays Polymarket international.
-3. Read **Model Pick** and each team's predicted win probability. Decimal odds
-   corresponding to a probability are `1 / probability`.
-4. Follow the sport-specific guidance below. The Polymarket link opens the
-   market where you can place your own order.
-5. After buying, check **Bought this game**, enter your total spent in USD, and
-   save it. The purchase history retains your entry after the game starts.
+### Automatic collection and model updates
 
-The purchase control is a manual record. It does not submit an order, check a
-wallet balance or automatically size an order for your trading account.
+Collection starts with the app, including when no trading account is connected
+and execution is OFF. NBA/MLB completed-game collection feeds dated player/team
+history and rolling training. The separate NHL/soccer worker catches up calendars,
+completed reports, validated features and selected monthly model preparation.
+Missed work is retried after downtime. The collection status endpoint is
+`/api/collection/status`.
 
-### Refreshes and waiting messages
+The main collection entry points are `sports_app/lifecycle.py` for NBA/MLB and
+`sports_app/live_worker.py` for NHL/soccer, with their schedule, detail, feature
+and model modules. Historical discovery, acquisition, parsing, normalization and
+date-query scripts are in `data collecting/`; current NHL/soccer support also
+uses `nhl_soccer_iteration/` and `soccer_nhl_granular/` within that folder.
+Run historical stages in their documented dependency order.
 
-**Refresh fixtures & odds** updates schedules, predictions and quotes. The
-optional five-minute refresh switch requests full refreshes while the page is
-open. The server separately checks MLB lineups and prices every five minutes
-inside the decision window and refreshes schedules daily while running.
-The page reads the latest saved dashboard every minute, so newly ready MLB
-forecasts appear even when the full-refresh switch is off. It avoids disturbing
-an active purchase-entry form.
+Sports history remains usable until new results, input revisions or rescheduling
+require an update. It does not expire merely because a few minutes passed.
+Account state, market books and official event status still need current checks.
+Missing historical inputs, unconfirmed lineups, unavailable US markets and source
+failures have separate readiness messages. Collection cannot make an unavailable
+input or exchange listing immediately available.
 
-A quote older than two minutes is stale: refresh before acting on it.
-MLB needs both starting pitchers and both complete nine-player batting orders
-from the official pregame feed. It also uses a fixed 12-hour selection window.
-A missing lineup, an unannounced start time, or a game outside that window can
-legitimately show a waiting message. Check the displayed reason and source health.
-An off-season league without scheduled games is shown accordingly.
+NBA retains its rolling logistic model with 27 raw features, ten interactions
+and the established T-12h feature cutoff. MLB retains the 53-input daily
+logistic/CatBoost ensemble with dated calibration and confirmed official lineups;
+its history-only preliminary forecast is labelled separately. NHL/soccer use
+their selected monthly sports models, with soccer's separate confidence model.
+Training and calibration preserve observation cutoffs, and started-game forecasts
+stay frozen.
 
-### NBA model and how to bet
+### Dashboard and account controls
 
-NBA uses rolling logistic regression with 27 raw features and ten interaction
-terms. Features describe earlier team and player performance. Scaling, missing
-value handling and calibration use earlier observations, with the existing
-12-hours-before-start forecast cutoff. Historical training begins in 2021.
+Use sport/league filters, team search and the date window to inspect official
+fixtures, forecasts, model readiness and US quotes. **Bought this game** remains
+a manual purchase record; it does not send an order. Automatic orders are managed
+on the separate execution page.
 
-The buy split displayed under **Model Pick** equals the two model probabilities.
-Choose a total budget for that match, then multiply it by each probability.
-For example, with 40% away and 60% home, a $100 match budget becomes $40 on the
-away team and $60 on the home team. These are cash amounts, not numbers of shares,
-and the percentages describe the match budget, not the entire account.
+To start execution on a new installation:
 
-At a purchase price of `q` dollars per share, an amount `A` buys `A / q` shares.
-The winning contract normally settles at $1 per share. Holding both sides does
-not guarantee a profit: the prices paid determine the final payout relative to
-the combined cost. This split does not apply MLB's entry filter.
+1. Open `/trading`, enter the Polymarket US API key ID and secret, and use
+   **Connect & save**. Review the account-check result beside the controls.
+2. Select **DRY RUN** or **LIVE**, enter the bot allocation, and confirm it for
+   that mode. Each mode retains its own confirmed budget.
+3. Edit the sport amounts and the soccer/NHL dollars-per-point values as needed,
+   then use **Confirm sport budgets**.
+4. Use **Start dry run** for simulated execution. For real orders, use
+   **Enable LIVE trading** and the separate on-page confirmation.
 
-### MLB model and how to bet
+Dry run uses live account/book inputs and the same decision rules, with simulated
+fills. It does not establish real queue priority, fillability or exchange fees.
+The match list explains whether execution is working, holding or waiting.
 
-MLB uses 53 baseball features: team form, starting-pitcher history, announced
-batters, platoon matchup, recent player form, contact quality and bullpen form.
-The model averages calibrated logistic regression and CatBoost probabilities
-equally. Preprocessing uses training-only scaling, selected log transformations,
-clipping and missing-value indicators. Market prices are not predictive inputs.
+Sign-in is encrypted with Windows DPAPI for the current Windows user. On restart,
+the app restores the saved account, mode and allocation. Previously enabled
+execution resumes only after the saved identity and mode match and account,
+storage and allocation checks succeed. **Stop** clears the saved execution intent.
+**Disconnect** retains the saved sign-in but disables automatic reconnection;
+**Forget saved sign-in** removes it. A new source checkout has no account or
+enabled trading preference.
 
-The fit updates at the UTC daily boundary using earlier known results; the latest
-300 eligible earlier games are reserved for calibration. Features use only
-information available by the forecast time. The original team inputs retain their
-pre-12-hour cutoff, while announced-player inputs use the verified pregame report.
+Account actions show queued, running, succeeded or failed status. A local
+connection interruption retains the last displayed account state and retries.
+An uncertain account check delays new orders while verification retries; the
+displayed reason identifies the unresolved step.
 
-1. Wait for the official pitchers and complete batting orders within the game's
-   fixed 12-hour selection window.
-2. Select the model's higher-probability team.
-3. Buy only at a price no higher than `model probability - 0.05`.
-   The app shows that maximum price and its equivalent minimum decimal odds.
-4. Use 1% of current total account equity for the normal stake. Keep total open
-   purchase cost at or below 20% of account equity. Reduce new stakes if cash or
-   remaining capacity is insufficient.
-5. Buy once per game and hold to the result. Record the purchase in the app.
+### Allocation and current sport rules
 
-Example: a 60% model probability gives a maximum buy price of $0.55 per share
-and minimum decimal odds of about 1.819. With $1,000 account equity, the normal
-stake is $10, buying about 18.18 shares at $0.55. A win returns about $18.18
-before costs; a loss returns zero. This is a price threshold, not a guarantee.
-Displayed limits round conservatively. The app flags stale or unavailable quotes
-and marks purchases you already recorded.
+Confirmed allocation **A** may be up to **10 times account value** for strategy
+sizing: an account value of $100 permits an allocation of $1,000. This does not
+create extra cash or borrowing capacity; actual orders remain limited by available
+cash after reservations and existing commitments.
 
-The current MLB rule buys the qualifying predicted winner. Its two-side
-probability-allocation comparison remains research and is not the active rule.
-The market-aware reference model is also not the active predictor.
+Automatic starting sport targets are soccer 35%, NHL 30%, NBA 20% and MLB 15%.
+The displayed dollar amounts are editable directly, with a confirmation button.
+Confirmed custom sport budgets become the limits for new matches and must total
+no more than A. Existing match budgets remain locked when allocation changes.
 
-### Maintain the app
+Here `p` is the selected sports-model probability, `ask` is the economic price of
+the selected outcome, and `c` is that sport's editable dollars-per-point value
+(initially $5 for soccer and NHL).
 
-Keep historical model inputs current using the data collection and feature
-construction scripts. Refreshing fixtures and quotes does not itself extend the
-historical training tables. The models use games from 2021 onward, subject to
-actual collected coverage; date-specific training must not use later results.
+| Sport | Entry timing | Current qualification | Requested match budget before cash/sport limits |
+| --- | --- | --- | --- |
+| NBA | From T-3h until start | Selected forecast winner; the current execution rule has no probability-discount filter | 3% of A below $10,000; 2% of A at or above $10,000 |
+| MLB | Pregame, as soon as confirmed inputs are ready | Selected winner's ask <= p - 0.05 | 3% of A below $10,000; 2% of A at or above $10,000 |
+| Soccer | From T-12h until start | p > 51%, confidence > 55%, selected outcome's YES contract | c × max(100p - 51, 0) |
+| NHL | From T-12h until start | p > 60%, ask > $0.50; first two matches per UTC day in each floor((p - ask) / 0.04) band | c × max(100p - 51, 0) |
 
-Run the data-independent checks from the project directory:
+The NBA T-3h order-entry window is separate from its unchanged T-12h model cutoff.
+MLB has no additional fixed 12-hour gate in the execution engine; confirmed-model
+readiness still applies. Historical backtest sizing and entry settings are not
+the current live execution rules. The current rules are implemented in
+`sports_app/trading_rules.py` and `sports_app/trading_engine.py`.
+
+### Limit orders and reconciliation
+
+The engine uses **limit orders (LMT)**. Subject to exchange increments, minimum
+size and available cash, it divides remaining locked match dollars between a
+midpoint limit and an ask-price limit. Working orders are reviewed on the normal
+five-minute refresh cycle, with cancellation confirmed before replacement.
+Pregame ordering ends at the scheduled start; filled positions are held through
+settlement. Manual or externally managed positions are protected from automatic
+changes.
+
+For a NO purchase, the connector converts the Polymarket US complementary-YES
+quote convention to the economic NO bid, ask and order price before qualification,
+midpoint and sizing calculations. YES-side quotes are not used as NO purchase
+prices without this conversion.
+
+An uncertain submission response triggers checks of open orders, recent fills,
+position, available balance and relevant market/order state. The engine adopts
+a verified existing order, reconciles fills, or recomputes the remaining action.
+It does not blindly resubmit an ambiguous attempt or permanently stop solely
+because a submission response was uncertain.
+
+### Account values and execution costs
+
+| Field | Meaning |
+| --- | --- |
+| Estimated portfolio value | Cash and marked positions with complementary/short obligations accounted for; the estimate can differ from another screen's prices or observation time |
+| Available cash after reservations | Exchange-reported cash currently available after exchange reservations |
+| Confirmed allocation A | The confirmed strategy sizing budget |
+| Capital invested | Purchase principal of confirmed app fills on unsettled matches, before fees |
+| Fees paid (net rebates) | Verified exchange commissions, keeping rebates negative |
+| Spread/slippage (estimate) | Filled purchase principal minus filled quantity times the economic midpoint recorded before each order |
+| Execution cost (estimate) | Net fees plus the spread/slippage estimate |
+| App unfilled order reserves | Principal reserved for the unfilled remainder of active or unresolved app orders |
+| Available bot capital | Uncommitted capacity for new matches, limited by allocation, sport budgets, existing commitments and available cash |
+| Manual/external cost basis | Exchange-reported cost basis of positions treated as manual or externally managed; it is separate from app execution expenses |
+
+The account-level app cost totals cover orders on unsettled matches. Invested
+principal is separate from execution expenses. Spread/slippage is already embedded
+in the purchase price and is **not an additional cash charge**. Negative estimates
+can represent price improvement. Missing verified fees or pre-order midpoint
+evidence display as unavailable rather than zero.
+
+An unfilled order is a reservation, not a paid execution expense. A canceled
+remainder releases its reservation; any earlier partial fill and its actual fees
+remain recorded. Locked capital includes the match budget already committed to
+filled contracts, working orders and intended future fills.
+
+### Validation
+
+The October 6 application revision passed 147 regression tests plus browser and
+live account-reconciliation checks. Packaging also verified the retained folder
+layout, source hashes, storage initialization and NBA template reproduction.
+These checks do not claim new model backtest results or guarantee future fills.
+
+Run the packaged execution/accounting checks with simulated exchanges:
 
 ```powershell
-& .\final_models\.venv\Scripts\python.exe -m unittest discover -s tests -p test_quote_selection.py
-& .\final_models\.venv\Scripts\python.exe -m unittest discover -s tests -p test_shared_http_limits.py
+& .\final_models\.venv\Scripts\python.exe -B .\tools\run_execution_checks.py
 ```
 
-With the prepared historical data, run `sports_app/verify_final_models.py` to
-replay model inputs and predictions. This also tests forecasts whose game IDs
-do not exist in the completed-game history. Browser checks require Playwright's
-Chromium installation. Source timestamps, model errors and missing-data reasons
-should be checked before interpreting a displayed prediction.
+Data-dependent tests and `sports_app/verify_final_models.py` require the retained
+official history and model assets. The source archive's `FILE_MANIFEST.json`
+records per-file SHA-256 values; the adjacent ZIP checksum verifies the archive.
 
 ## Copy Trading App
 
